@@ -1,9 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
-const port = process.env.PORT || 3000;
-
-const withdrawRouter = require('./src/routes/withdraw.route');
+const db = require('./src/services/db.service');
+const config = require('./src/configs/general.config');
 
 app.use(bodyParser.json());
 app.use(
@@ -16,16 +15,25 @@ app.get('/', (req, res) => {
     res.json({ 'message': 'ok' });
 });
 
-app.use('/withdraw', withdrawRouter);
+db.connect()
+    .then(_ => {
+        const withdrawRouter = require('./src/routes/withdraw.route');
 
-app.use((err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    console.error(err.message, err.stack);
-    res.status(statusCode).json({ 'message': err.message });
+        app.use('/withdraw', withdrawRouter);
 
-    return;
-});
+        app.use((err, req, res, next) => {
+            const statusCode = err.statusCode || 500;
+            console.error(err.message, err.stack);
+            res.status(statusCode).json({ 'message': err.message });
 
-app.listen(port, '0.0.0.0', () => {
-    console.log('Listening at http://localhost:' + port);
-})
+            return;
+        });
+
+        app.listen(config.port, '0.0.0.0', () => {
+            console.log('Listening at http://localhost:' + config.port);
+        })
+    })
+    .catch(err => { 
+        console.error(err);
+        process.exit(1);
+    });

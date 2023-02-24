@@ -50,11 +50,6 @@ const sets = [
         probability: 0.001447876447876453
     },
     {
-        id: 'si1',
-        cards: 18,
-        probability: 0.001447876447876453
-    },
-    {
         id: 'neo3',
         cards: 66,
         probability: 0.001447876447876453
@@ -120,11 +115,6 @@ const sets = [
         probability: 0.002895752895752901
     },
     {
-        id: 'pop1',
-        cards: 17,
-        probability: 0.002895752895752901
-    },
-    {
         id: 'ex7',
         cards: 111,
         probability: 0.002895752895752901
@@ -145,11 +135,6 @@ const sets = [
         probability: 0.0033783783783783838
     },
     {
-        id: 'pop2',
-        cards: 17,
-        probability: 0.0033783783783783838
-    },
-    {
         id: 'ex11',
         cards: 114,
         probability: 0.0033783783783783838
@@ -157,11 +142,6 @@ const sets = [
     {
         id: 'ex12',
         cards: 93,
-        probability: 0.0038610038610038663
-    },
-    {
-        id: 'pop3',
-        cards: 17,
         probability: 0.0038610038610038663
     },
     {
@@ -175,19 +155,9 @@ const sets = [
         probability: 0.0038610038610038663
     },
     {
-        id: 'pop4',
-        cards: 17,
-        probability: 0.0038610038610038663
-    },
-    {
         id: 'ex15',
         cards: 101,
         probability: 0.0038610038610038663
-    },
-    {
-        id: 'pop5',
-        cards: 17,
-        probability: 0.004343629343629349
     },
     {
         id: 'ex16',
@@ -210,11 +180,6 @@ const sets = [
         probability: 0.004343629343629349
     },
     {
-        id: 'pop6',
-        cards: 17,
-        probability: 0.004343629343629349
-    },
-    {
         id: 'dp3',
         cards: 132,
         probability: 0.004343629343629349
@@ -222,11 +187,6 @@ const sets = [
     {
         id: 'dp4',
         cards: 106,
-        probability: 0.004826254826254831
-    },
-    {
-        id: 'pop7',
-        cards: 17,
         probability: 0.004826254826254831
     },
     {
@@ -240,11 +200,6 @@ const sets = [
         probability: 0.004826254826254831
     },
     {
-        id: 'pop8',
-        cards: 17,
-        probability: 0.004826254826254831
-    },
-    {
         id: 'dp7',
         cards: 106,
         probability: 0.004826254826254831
@@ -252,11 +207,6 @@ const sets = [
     {
         id: 'pl1',
         cards: 133,
-        probability: 0.005308880308880314
-    },
-    {
-        id: 'pop9',
-        cards: 17,
         probability: 0.005308880308880314
     },
     {
@@ -275,18 +225,8 @@ const sets = [
         probability: 0.005308880308880314
     },
     {
-        id: 'ru1',
-        cards: 16,
-        probability: 0.005308880308880314
-    },
-    {
         id: 'hgss1',
         cards: 124,
-        probability: 0.005791505791505796
-    },
-    {
-        id: 'hsp',
-        cards: 25,
         probability: 0.005791505791505796
     },
     {
@@ -320,11 +260,6 @@ const sets = [
         probability: 0.006274131274131279
     },
     {
-        id: 'mcd11',
-        cards: 12,
-        probability: 0.006274131274131279
-    },
-    {
         id: 'bw2',
         cards: 98,
         probability: 0.006274131274131279
@@ -345,18 +280,8 @@ const sets = [
         probability: 0.006756756756756762
     },
     {
-        id: 'mcd12',
-        cards: 12,
-        probability: 0.006756756756756762
-    },
-    {
         id: 'bw6',
         cards: 128,
-        probability: 0.006756756756756762
-    },
-    {
-        id: 'dv1',
-        cards: 21,
         probability: 0.006756756756756762
     },
     {
@@ -390,11 +315,6 @@ const sets = [
         probability: 0.007239382239382245
     },
     {
-        id: 'xy0',
-        cards: 39,
-        probability: 0.007239382239382245
-    },
-    {
         id: 'xy1',
         cards: 146,
         probability: 0.007722007722007727
@@ -417,11 +337,6 @@ const sets = [
     {
         id: 'xy5',
         cards: 164,
-        probability: 0.008204633204633209
-    },
-    {
-        id: 'dc1',
-        cards: 34,
         probability: 0.008204633204633209
     },
     {
@@ -457,11 +372,6 @@ const sets = [
     {
         id: 'xy11',
         cards: 116,
-        probability: 0.008687258687258692
-    },
-    {
-        id: 'mcd16',
-        cards: 12,
         probability: 0.008687258687258692
     },
     {
@@ -530,11 +440,6 @@ const sets = [
         probability: 0.010135135135135141
     },
     {
-        id: 'det1',
-        cards: 18,
-        probability: 0.010135135135135141
-    },
-    {
         id: 'sm10',
         cards: 235,
         probability: 0.010135135135135141
@@ -552,11 +457,6 @@ const sets = [
     {
         id: 'sma',
         cards: 94,
-        probability: 0.010135135135135141
-    },
-    {
-        id: 'mcd19',
-        cards: 12,
         probability: 0.010135135135135141
     },
     {
@@ -620,74 +520,9 @@ const sets = [
         probability: 0.011100386100386106
     },
     {
-        id: 'cel25',
-        cards: 25,
-        probability: 0.011100386100386106
-    },
-    {
-        id: 'cel25c',
-        cards: 25,
-        probability: 0.011100386100386106
-    },
-    {
-        id: 'mcd14',
-        cards: 12,
-        probability: 0.007722007722007727
-    },
-    {
-        id: 'mcd15',
-        cards: 12,
-        probability: 0.008204633204633209
-    },
-    {
-        id: 'mcd18',
-        cards: 12,
-        probability: 0.009652509652509658
-    },
-    {
-        id: 'mcd17',
-        cards: 12,
-        probability: 0.009169884169884176
-    },
-    {
-        id: 'mcd21',
-        cards: 25,
-        probability: 0.011100386100386106
-    },
-    {
-        id: 'bp',
-        cards: 9,
-        probability: 0.0019305019305019358
-    },
-    {
         id: 'swsh8',
         cards: 284,
         probability: 0.011100386100386106
-    },
-    {
-        id: 'fut20',
-        cards: 5,
-        probability: 0.010617760617760623
-    },
-    {
-        id: 'tk1a',
-        cards: 10,
-        probability: 0.002895752895752901
-    },
-    {
-        id: 'tk1b',
-        cards: 10,
-        probability: 0.002895752895752901
-    },
-    {
-        id: 'tk2a',
-        cards: 12,
-        probability: 0.0038610038610038663
-    },
-    {
-        id: 'tk2b',
-        cards: 12,
-        probability: 0.0038610038610038663
     },
     {
         id: 'swsh9',
@@ -695,18 +530,8 @@ const sets = [
         probability: 0.011583011583011588
     },
     {
-        id: 'swsh9tg',
-        cards: 30,
-        probability: 0.011583011583011588
-    },
-    {
         id: 'swsh10',
         cards: 216,
-        probability: 0.011583011583011588
-    },
-    {
-        id: 'swsh10tg',
-        cards: 30,
         probability: 0.011583011583011588
     },
     {
@@ -720,23 +545,8 @@ const sets = [
         probability: 0.011583011583011588
     },
     {
-        id: 'swsh11tg',
-        cards: 30,
-        probability: 0.011583011583011588
-    },
-    {
         id: 'swsh12',
         cards: 215,
-        probability: 0.011583011583011588
-    },
-    {
-        id: 'swsh12tg',
-        cards: 30,
-        probability: 0.011583011583011588
-    },
-    {
-        id: 'mcd22',
-        cards: 15,
         probability: 0.011583011583011588
     },
     {
@@ -750,3 +560,87 @@ const sets = [
         probability: 0.012065637065637071
     }
 ];
+
+const rarities = [
+    {
+        name: 'Rare',
+        probability: 0.8
+    },
+    {
+        name: 'Amazing Rare',
+        probability: 0.1
+    },
+    {
+        name: 'Rare ACE',
+        probability: 0.1
+    },
+    {
+        name: 'Rare BREAK',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo EX',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo GX',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo LV.X',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo Star',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo V',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Holo VMAX',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Prime',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Prism Star',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Secret',
+        probability: 0.01
+    },
+    {
+        name: 'Rare Rainbow',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Shining',
+        probability: 0.1
+    },
+    {
+        name: 'Rare Shiny',
+        probability: 0.05
+    },
+    {
+        name: 'Rare Shiny GX',
+        probability: 0.05
+    },
+    {
+        name: 'Rare Ultra',
+        probability: 0.1
+    }
+];
+
+module.exports = {
+    sets,
+    rarities
+};

@@ -1,11 +1,8 @@
-const tcgsdk = require('pokemontcgsdk');
-// const service = require('');
-
+const service = require('../services/withdraw.service');
 
 async function get(req, res, next) {
     try{
-        // const sets = await tcgsdk.set.all();
-
+        const pack = await service.withdrawPack();
         res.json({ 'message': 'withdraw' });
     }
     catch (err) {
