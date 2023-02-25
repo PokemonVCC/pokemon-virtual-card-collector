@@ -553,18 +553,36 @@ const sets = [
         id: 'swsh12pt5',
         cards: 160,
         probability: 0.012065637065637071
+    }
+];
+
+const setsLinked = [
+    {
+        origin: 'swsh12pt5',
+        linked: 'swsh12pt5gg'
     },
     {
-        id: 'swsh12pt5gg',
-        cards: 70,
-        probability: 0.012065637065637071
+        origin: 'swsh12',
+        linked: 'swsh12tg'
+    },
+    {
+        origin: 'swsh11',
+        linked: 'swsh11tg'
+    },
+    {
+        origin: 'swsh10',
+        linked: 'swsh10tg'
+    },
+    {
+        origin: 'swsh9',
+        linked: 'swsh9tg'
     }
 ];
 
 const rarities = [
     {
         name: 'Rare',
-        probability: 0.8
+        probability: 0.7
     },
     {
         name: 'Amazing Rare',
@@ -642,5 +660,6 @@ const rarities = [
 
 module.exports = {
     sets,
+    setsLinked,
     rarities
 };
