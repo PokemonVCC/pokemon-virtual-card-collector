@@ -21,17 +21,17 @@ async function withdrawPack() {
     }
 
     const packs = await db.collection('packs')
-        .find({ set_id: set._id })
+        .find({ set_id: set._id, withdrawed: false })
         .toArray();
     const pack = packs[Math.floor(Math.random() * packs.length)];
 
-    const cards = await db.collection('cards').find({ pack_id: pack._id }).toArray();
+    const cards = await db.collection('cards').find({ pack_id: pack.id }).toArray();
 
     for(let i = 0; i < cards.length; i++) {
         await db.collection('cards').updateOne({ _id: cards[i]._id }, { $set: { user_id: 1 }});
     }
 
-    await db.collection('packs').deleteOne({ _id: pack._id });
+    await db.collection('packs').updateOne({ _id: pack._id }, { $set: { user_id: 1, withdrawed: true }});
     await db.collection('sets').updateOne({ _id: set._id }, { $set: { packs_available: set.packs_available - 1 }});
 
     pack.cards = cards;
@@ -68,6 +68,7 @@ async function generateNewSet() {
         }
 
         const canHaveSecretRare = Math.random() <= (1 / 72);
+        const setRarities = [...new Set(setCards.map(x => x.rarity))];
         
         for(let i = 0; i < 36; i++) {
             let j = 0;
@@ -90,7 +91,7 @@ async function generateNewSet() {
                     let filteredCards = [];
                     
                     while(filteredCards.length === 0) {
-                        const rarity = getRandomRarity();
+                        const rarity = getRandomRarity(setRarities);
 
                         if(rarity === 'Rare Secret' && !canHaveSecretRare) {
                             continue;
@@ -119,20 +120,23 @@ async function generateNewSet() {
             }
 
             const pack = {
+                id: set.id + '-' + Date.now() + '' + Math.floor(Math.random() * 10),
                 set_id: setResult.insertedId,
                 total_cards: 10,
                 rarity_found: cards[9].rarity,
                 images: {
                     symbol: setApiResult.images.symbol,
                     logo: setApiResult.images.logo
-                }
+                },
+                withdrawed: false
             };
     
             const packResult = await db.collection('packs').insertOne(pack);
     
             if(packResult.acknowledged) {
                 for(let i = 0; i < cards.length; i++) {
-                    cards[i].pack_id = packResult.insertedId;
+                    cards[i].id = pack.id + '-' + (i + 1);
+                    cards[i].pack_id = pack.id;
     
                     await db.collection('cards').insertOne(cards[i]);
                 }
@@ -164,16 +168,18 @@ function getRandomSet() {
     }
 }
 
-function getRandomRarity() {
+function getRandomRarity(availableRarities) {
     let sum = 0;
 
-    constants.rarities.forEach(rarity => {
+    const rarities = constants.rarities.filter(x => availableRarities.includes(x.name));
+
+    rarities.forEach(rarity => {
         sum += rarity.probability;
     });
 
     let pick = Math.random() * sum;
     
-    const orderedRarities = constants.rarities
+    const orderedRarities = rarities
         .sort((a, b) => b.probability - a.probability);
 
     for(let i = 0; i < orderedRarities.length; i++) {

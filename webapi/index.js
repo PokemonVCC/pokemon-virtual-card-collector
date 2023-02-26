@@ -17,9 +17,13 @@ app.get('/', (req, res) => {
 
 db.connect()
     .then(_ => {
+        const userRouter = require('./src/routes/user.route');
         const withdrawRouter = require('./src/routes/withdraw.route');
+        const cardRouter = require('./src/routes/card.route');
 
+        app.use('/user', userRouter);
         app.use('/withdraw', withdrawRouter);
+        app.use('/card', cardRouter);
 
         app.use((err, req, res, next) => {
             const statusCode = err.statusCode || 500;

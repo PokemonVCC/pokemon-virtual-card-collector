@@ -385,11 +385,6 @@ const sets = [
         probability: 0.009169884169884176
     },
     {
-        id: 'smp',
-        cards: 250,
-        probability: 0.009169884169884176
-    },
-    {
         id: 'sm2',
         cards: 180,
         probability: 0.009169884169884176
@@ -582,70 +577,58 @@ const setsLinked = [
 const rarities = [
     {
         name: 'Rare',
-        probability: 0.7
-    },
-    {
-        name: 'Amazing Rare',
-        probability: 0.1
-    },
-    {
-        name: 'Rare ACE',
-        probability: 0.1
-    },
-    {
-        name: 'Rare BREAK',
-        probability: 0.1
+        probability: 0.75
     },
     {
         name: 'Rare Holo',
         probability: 0.1
     },
     {
+        name: 'Rare Holo V',
+        probability: 0.05
+    },
+    {
         name: 'Rare Holo EX',
-        probability: 0.1
+        probability: 0.05
     },
     {
         name: 'Rare Holo GX',
-        probability: 0.1
+        probability: 0.05
     },
     {
         name: 'Rare Holo LV.X',
-        probability: 0.1
+        probability: 0.05
+    },
+    {
+        name: 'Amazing Rare',
+        probability: 0.05
+    },
+    {
+        name: 'Rare ACE',
+        probability: 0.05
     },
     {
         name: 'Rare Holo Star',
-        probability: 0.1
-    },
-    {
-        name: 'Rare Holo V',
-        probability: 0.1
+        probability: 0.05
     },
     {
         name: 'Rare Holo VMAX',
-        probability: 0.1
+        probability: 0.05
     },
     {
         name: 'Rare Prime',
-        probability: 0.1
-    },
-    {
-        name: 'Rare Prism Star',
-        probability: 0.1
-    },
-    {
-        name: 'Rare Secret',
-        probability: 0.01
+        probability: 0.05
     },
     {
         name: 'Rare Rainbow',
-        probability: 0.1
+        probability: 0.05
     },
     {
         name: 'Rare Shining',
-        probability: 0.1
+        probability: 0.05
     },
     {
-        name: 'Rare Shiny',
+        name: 'Rare Ultra',
         probability: 0.05
     },
     {
@@ -653,9 +636,17 @@ const rarities = [
         probability: 0.05
     },
     {
-        name: 'Rare Ultra',
-        probability: 0.1
-    }
+        name: 'Rare Prism Star',
+        probability: 0.05
+    },
+    {
+        name: 'Rare Shiny',
+        probability: 0.01
+    },
+    {
+        name: 'Rare Secret',
+        probability: 0.01
+    },
 ];
 
 module.exports = {
