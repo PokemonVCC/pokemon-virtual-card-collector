@@ -13,12 +13,7 @@
             ],
             "program": "${workspaceFolder}/webapi/index.js",
             "env": {
-                "PORT": 3000,
-                "TCG_API_KEY": "551a20e1-0902-4e40-9d03-3fbcbf843415",
-                "MONGODB_URL": "pokemonvcc.rh64qfy.mongodb.net",
-                "MONGODB_USER": "admin",
-                "MONGODB_PASSWORD": "admin",
-                "MONGODB_DATABASE": "pokemon-vcc"
+                "PORT": 3000
             }
         }
     ]
