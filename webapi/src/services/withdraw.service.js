@@ -1,4 +1,6 @@
 const tcgSdk = require('pokemontcgsdk');
+const argon2 = require('argon2');
+const hashUtils = require('../utils/hash.utils');
 const tcgConfig = require('../configs/tcg.config');
 const constants = require('../constants/withdraw.constant');
 const mongo = require('./db.service');
@@ -7,7 +9,7 @@ const db = mongo.get();
 
 tcgSdk.configure({ apiKey: tcgConfig.key });
 
-async function withdrawPack() {
+async function withdrawPack(userId) {
     // Checks if a set already exists on database
     let set = await db.collection('sets').findOne({
         packs_available: {
@@ -28,10 +30,10 @@ async function withdrawPack() {
     const cards = await db.collection('cards').find({ pack_id: pack.id }).toArray();
 
     for(let i = 0; i < cards.length; i++) {
-        await db.collection('cards').updateOne({ _id: cards[i]._id }, { $set: { user_id: 1 }});
+        await db.collection('cards').updateOne({ _id: cards[i]._id }, { $set: { user_id: userId }});
     }
 
-    await db.collection('packs').updateOne({ _id: pack._id }, { $set: { user_id: 1, withdrawed: true }});
+    await db.collection('packs').updateOne({ _id: pack._id }, { $set: { user_id: userId, withdrawed: true }});
     await db.collection('sets').updateOne({ _id: set._id }, { $set: { packs_available: set.packs_available - 1 }});
 
     pack.cards = cards;
@@ -119,8 +121,16 @@ async function generateNewSet() {
                 j++;
             }
 
+            const packId = set.id + '-' + Date.now() + '' + Math.floor(Math.random() * 10);
+            const packHash = await argon2.hash(packId, {
+                type: argon2.argon2id,
+                timeCost: 2,
+                hashLength: 16,
+                raw: true
+            });
+
             const pack = {
-                id: set.id + '-' + Date.now() + '' + Math.floor(Math.random() * 10),
+                id: hashUtils.hashToHex(packHash) + (Math.floor(Math.random() * 16).toString(16)),
                 set_id: setResult.insertedId,
                 total_cards: 10,
                 rarity_found: cards[9].rarity,
@@ -135,7 +145,9 @@ async function generateNewSet() {
     
             if(packResult.acknowledged) {
                 for(let i = 0; i < cards.length; i++) {
-                    cards[i].id = pack.id + '-' + (i + 1);
+                    const cardId = pack.id + (i + 1).toString(16);
+                    
+                    cards[i].id = cardId;
                     cards[i].pack_id = pack.id;
     
                     await db.collection('cards').insertOne(cards[i]);
