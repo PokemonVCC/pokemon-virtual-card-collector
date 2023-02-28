@@ -649,8 +649,11 @@ const rarities = [
     },
 ];
 
+const dropPointsCost = 6 * 24;
+
 module.exports = {
     sets,
     setsLinked,
-    rarities
+    rarities,
+    dropPointsCost
 };

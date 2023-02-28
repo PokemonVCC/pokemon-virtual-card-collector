@@ -105,11 +105,47 @@ async function generateNewSet() {
                     card = filteredCards[Math.floor(Math.random() * filteredCards.length)];
                 }
 
+                const attacks = [];
+
+                if(card.attacks) {
+                    for(let k = 0; k < card.attacks.length; k++) {
+                        const attack = card.attacks[k];
+
+                        if(!attack.damage) {
+                            continue;
+                        }
+
+                        let attackType;
+                        const attackTypes = new Set(attack.cost);
+
+                        if(attackTypes.size === 1) {
+                            attackType = [...attackTypes][0];
+                        }
+                        else if(attackTypes.size === 2) {
+                            attackTypes.delete('Colorless');
+                            attackType = [...attackTypes][0];
+                        }
+                        else {
+                            attackType = 'Colorless';
+                        }
+    
+                        attacks.push({
+                            name: attack.name,
+                            type: attackType,
+                            cost: attack.convertedEnergyCost,
+                            damage: attack.damage
+                        });
+                    }
+                }
+
                 cards.push({
                     id: card.id,
                     name: card.name,
                     number: card.number,
                     rarity: card.rarity,
+                    weaknesses: card.weaknesses,
+                    resistances: card.resistances,
+                    attacks: attacks,
                     images: {
                         small: card.images.small,
                         large: card.images.large
