@@ -23,12 +23,10 @@ async function authenticateUser(username, password) {
           expiresIn: authConfig.tokenExpirationDays 
         });
 
-    user.token = token;
-
     const result = await db.collection('users').updateOne({ id: user.id }, { $set: { last_login: new Date() }});
 
     if(result.acknowledged) {
-        return user;
+        return token;
     }
 
     return -2;

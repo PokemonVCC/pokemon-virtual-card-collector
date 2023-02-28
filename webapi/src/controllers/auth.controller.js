@@ -10,22 +10,20 @@ async function post(req, res, next) {
             return;
         }
 
-        const user = await service.authenticateUser(req.body.username, req.body.password);
+        const token = await service.authenticateUser(req.body.username, req.body.password);
 
-        if(user === -1) {
+        if(token === -1) {
             res.status(401);
             res.json({ message: 'Invalid credentials' });
             return;
         }
-        else if(user === -2) {
+        else if(token === -2) {
             res.status(500);
             res.json({ message: 'Something went bad during user update' });
             return;
         }
 
-        userUtils.hideUserConfidentialData(user);
-
-        res.json({ data: user });
+        res.json({ data: token });
     }
     catch (err) {
         console.error('Error on /auth [POST]');
