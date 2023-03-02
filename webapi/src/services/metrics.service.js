@@ -10,8 +10,6 @@ async function createMetric(metric) {
     if(metric.request.body) {
         metric.request.body = mongo.encryptString(metric.request.body);
     }
-    
-    metric.response.body = mongo.encryptString(metric.response.body);
 
     do {
         try {

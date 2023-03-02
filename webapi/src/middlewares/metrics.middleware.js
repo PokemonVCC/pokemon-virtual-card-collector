@@ -2,50 +2,40 @@ const service = require('../services/metrics.service');
 const constants = require('../constants/metrics.constant');
 
 function middleware (req, res, next) {
-    const metric = {};
     const requestStartDate = new Date();
     const requestStartTime = process.hrtime();
-    let endingType;
+
+    let requestData, responseData, endingType, elapsedMs;
 
     req.on('finish', () => {
+        elapsedMs = getMsElapsedUntilNow(requestStartTime);
         endingType = constants.endingTypes.FINISHED;
 
-        metric.request = processRequest(req);
+        requestData = processRequest(req);
 
-        if(metric.request && metric.response) {
-            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        if(requestData && responseData) {
+            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
         }
     });
 
     req.on('close', () => {
+        elapsedMs = getMsElapsedUntilNow(requestStartTime);
         endingType = constants.endingTypes.CLOSED;
 
-        metric.request = processRequest(req);
+        requestData = processRequest(req);
 
-        if(metric.request && metric.response) {
-            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        if(requestData && responseData) {
+            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
         }
     });
 
     const resEnd = res.end;
-    const resWrite = res.write;
-    const chunks = [];
-
-    res.write = (...arguments) => {
-        chunks.push(Buffer.from(arguments[0]));
-        resWrite.apply(res, arguments);
-    };
 
     res.end = (...arguments) => {
-        if(arguments[0]) {
-            chunks.push(Buffer.from(arguments[0]));
-        }
-        
-        const responseBody = Buffer.concat(chunks).toString('utf8');
-        metric.response = processResponse(res, responseBody);
+        responseData = processResponse(res);
 
-        if(metric.request && metric.response) {
-            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        if(requestData && responseData) {
+            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
         }
         
         resEnd.apply(res, arguments);
@@ -84,9 +74,7 @@ function processRequest(request) {
     };
 }
 
-function processResponse(response, responseBody) {
-    const buffer = Buffer.from(responseBody);
-    
+function processResponse(response) {
     const headers = response.getHeaders();
     const contentLength = parseInt(headers['content-length']);
     
@@ -95,19 +83,34 @@ function processResponse(response, responseBody) {
     return {
         status_code: response.statusCode,
         headers: headers,
-        body: buffer.toString('base64'),
         size: contentLength
     };
 }
 
-function saveMetric(metric, endingType, startDate, startTime) {
-    const msElapsed = getMsElapsedUntilNow(startTime);
+function saveMetric(endingType, startDate, elapsedMs, requestData, responseData) {
+    let statusType = constants.statusTypes.ERROR;
 
-    metric.start_time = startDate;
-    metric.ending_reason = endingType;
-    metric.time_elapsed = msElapsed;
+    if(responseData.status_code === 200) {
+        statusType = constants.statusTypes.OK;
+    }
+    if(responseData.status_code === 400) {
+        statusType = constants.statusTypes.BAD_REQUEST;
+    }
+    else if(responseData.status_code === 401 || responseData.status_code === 403) {
+        statusType = constants.statusTypes.UNAUTHORIZED;
+    }
+    else if(responseData.status_code === 404) {
+        statusType = constants.statusTypes.NOT_FOUND;
+    }
 
-    service.createMetric(metric);
+    service.createMetric({
+        status: statusType,
+        start_time: startDate,
+        ending_reason: endingType,
+        time_elapsed: elapsedMs,
+        request: requestData,
+        response: responseData
+    });
 }
 
 function getMsElapsedUntilNow(start) {

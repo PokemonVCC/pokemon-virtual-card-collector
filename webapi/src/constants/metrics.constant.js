@@ -6,8 +6,17 @@ const endingTypes = {
     CLOSED: 'CLOSED'
 };
 
+const statusTypes = {
+    OK: 'OK',
+    BAD_REQUEST: 'BAD REQUEST',
+    UNAUTHORIZED: 'UNAUTHORIZED',
+    NOT_FOUND: 'NOT FOUND',
+    ERROR: 'ERROR'
+};
+
 module.exports = {
     endingTypes,
     nanosecondsPerSecond,
-    nanosecondsToMs
+    nanosecondsToMs,
+    statusTypes
 };
