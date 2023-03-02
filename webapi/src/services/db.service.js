@@ -1,4 +1,5 @@
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const crypto = require('crypto');
 const dbConfig = require('../configs/db.config');
 
 const uri = 'mongodb+srv://' + 
@@ -29,7 +30,30 @@ function get() {
     return _db;
 }
 
+function encryptString(textToEncrypt) {
+    const iv = crypto.randomBytes(16);
+
+    const cipher = crypto.createCipheriv(dbConfig.encryptedDataAlgo, dbConfig.encryptedDataKey, iv);
+
+    const encrypted = Buffer.concat([cipher.update(textToEncrypt), cipher.final()]);
+    
+    return {
+        iv: iv.toString('hex'),
+        content: encrypted.toString('hex')
+    };
+}
+
+function decryptHash(hash) {
+    const decipher = crypto.createDecipheriv(dbConfig.encryptedDataAlgo, dbConfig.encryptedDataKey, Buffer.from(hash.iv, 'hex'));
+
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(hash.content, 'hex')), decipher.final()]);
+
+    return decrypted.toString();
+}
+
 module.exports = {
     get,
-    connect
+    connect,
+    encryptString,
+    decryptHash
 };

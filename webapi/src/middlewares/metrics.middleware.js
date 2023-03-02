@@ -1,16 +1,30 @@
+const service = require('../services/metrics.service');
 const constants = require('../constants/metrics.constant');
 
 function middleware (req, res, next) {
+    const metric = {};
     const requestStartDate = new Date();
     const requestStartTime = process.hrtime();
-    let responseMetric;
+    let endingType;
 
     req.on('finish', () => {
-        processRequest(constants.endingTypes.FINISHED, requestStartDate, requestStartTime, req, responseMetric);
+        endingType = constants.endingTypes.FINISHED;
+
+        metric.request = processRequest(req);
+
+        if(metric.request && metric.response) {
+            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        }
     });
 
     req.on('close', () => {
-        processRequest(constants.endingTypes.CLOSED, requestStartDate, requestStartTime, req, responseMetric);
+        endingType = constants.endingTypes.CLOSED;
+
+        metric.request = processRequest(req);
+
+        if(metric.request && metric.response) {
+            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        }
     });
 
     const resEnd = res.end;
@@ -28,7 +42,11 @@ function middleware (req, res, next) {
         }
         
         const responseBody = Buffer.concat(chunks).toString('utf8');
-        responseMetric = processResponse(res, responseBody);
+        metric.response = processResponse(res, responseBody);
+
+        if(metric.request && metric.response) {
+            saveMetric(metric, endingType, requestStartDate, requestStartTime);
+        }
         
         resEnd.apply(res, arguments);
     };
@@ -36,45 +54,60 @@ function middleware (req, res, next) {
     return next();
 }
 
-function processRequest(endingType, startDate, startTime, request, responseMetric) {
-    const msElapsed = getMsElapsedUntilNow(startTime);
-    
-    const requestHeaders = request.headers;
-    delete requestHeaders['x-access-token'];
+function processRequest(request) {
+    const contentLength = parseInt(request.headers['content-length']);
+    const remoteIp = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
 
-    const requestBody = (!request.body ||
+    delete request.headers['x-access-token'];
+    delete request.headers['content-length'];
+    delete request.headers['x-real-ip'];
+    delete request.headers['x-forwarded-for'];
+
+    let requestBody = (!request.body ||
         (request.body && 
             request.body.constructor === Object &&
             Object.keys(request.body).length === 0) ? null : request.body);
 
-    const metric = {
-        ending_reason: endingType,
-        time_elapsed: msElapsed,
-        remote_ip: request.headers['x-forwarded-for'] || request.socket.remoteAddress,
-        authenticated_user: request.authenticatedUser ? request.authenticatedUser.id : null,
-        request: {
-            start: startDate,
-            path: request.originalUrl,
-            method: request.method,
-            headers: requestHeaders,
-            body: JSON.stringify(requestBody),
-            size: requestBody ? parseInt(request.headers['content-length']) : null
-        },
-        response: responseMetric
-    };
+    if(requestBody) {
+        const buffer = Buffer.from(JSON.stringify(requestBody));
+        requestBody = buffer.toString('base64');
+    }
 
-    console.log(metric);
+    return {
+        remote_ip: remoteIp,
+        path: request.originalUrl,
+        method: request.method,
+        headers: request.headers,
+        authenticated_user: request.authenticatedUser ? request.authenticatedUser.id : null,
+        body: requestBody,
+        size: requestBody ? contentLength : null
+    };
 }
 
 function processResponse(response, responseBody) {
+    const buffer = Buffer.from(responseBody);
+    
     const headers = response.getHeaders();
+    const contentLength = parseInt(headers['content-length']);
+    
+    delete headers['content-length'];
 
     return {
         status_code: response.statusCode,
         headers: headers,
-        body: responseBody,
-        size: parseInt(headers['content-length'])
+        body: buffer.toString('base64'),
+        size: contentLength
     };
+}
+
+function saveMetric(metric, endingType, startDate, startTime) {
+    const msElapsed = getMsElapsedUntilNow(startTime);
+
+    metric.start_time = startDate;
+    metric.ending_reason = endingType;
+    metric.time_elapsed = msElapsed;
+
+    service.createMetric(metric);
 }
 
 function getMsElapsedUntilNow(start) {
