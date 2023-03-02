@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const authConfig = require('../configs/auth.config');
 
-const verifyToken = (req, res, next) => {
+function middleware (req, res, next) {
     const token = req.headers['x-access-token'];
 
     if(!token) {
@@ -23,4 +23,4 @@ const verifyToken = (req, res, next) => {
     return next();
 };
 
-module.exports = verifyToken;
+module.exports = middleware;
