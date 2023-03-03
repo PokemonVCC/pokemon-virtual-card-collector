@@ -77,7 +77,7 @@ async function updateDropPoints(id, toSubtract) {
     if(!toSubtract) {
         const productionDate = new Date();
         const productionDiff = productionDate - user.last_drop_points_update;
-        const minutesElapsed = productionDiff / 1000 / 60;
+        let minutesElapsed = productionDiff / 1000 / 60;
 
         if(minutesElapsed > constants.maxProductionTime) {
             minutesElapsed = constants.maxProductionTime;

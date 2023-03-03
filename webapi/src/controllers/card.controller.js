@@ -31,69 +31,72 @@ async function getByUser(req, res, next) {
             return;
         }
 
-        const cards = [];
-        const packs = [];
-        const sets = [];
+        const result = [];
 
-        for(let i = 0; i < allCards.length; i++) {
-            const card = allCards[i];
-            let pack;
-            let set;
+        let setMongoIds = [];
+        let packIds = [...new Set(allCards.map(x => x.pack_id))];
+        let setIds = {};
+        
+        for(let i = 0; i < packIds.length; i++) {
+            const pack = await service.getCardPack(packIds[i]);
 
-            if(packs.filter(x => x.id === card.pack_id).length === 0) {
-                pack = await service.getCardPack(card.pack_id);
-                packs.push(pack);
+            if(setMongoIds.filter(x => x.equals(pack.set_id)).length === 0) {
+                const set = await service.getCardSet(pack.set_id);
+
+                if(result.filter(x => x.set_id === set.id).length === 0) {
+                    result.push({
+                        set_id: set.id,
+                        set_images: pack.images,
+                        packIds: [pack.id],
+                        cards: []
+                    });
+                }
+
+                setMongoIds.push(pack.set_id);
+                setIds[pack.set_id] = set.id;
             }
             else {
-                pack = packs.find(x => x.id === card.pack_id);
-            }
-            
-            if(!pack) {
-                continue;
-            }
-            
-            if(sets.filter(x => x._id.equals(pack.set_id)).length === 0) {
-                set = await service.getCardSet(pack.set_id);
-                sets.push(set);
-            }
-            else {
-                set = sets.find(x => x._id.equals(pack.set_id));
-            }
-
-            if(!set) {
-                continue;
-            }
-
-            const tempId = set.id + card.number;
-
-            if(cards.filter(x => x.temp_id === tempId).length === 0) {
-                cards.push({
-                    temp_id: tempId,
-                    set_id: set.id,
-                    ids: [card.id],
-                    name: card.name,
-                    number: parseInt(card.number),
-                    rarity: card.rarity,
-                    types: card.types,
-                    weaknesses: card.weaknesses,
-                    resistances: card.resistances,
-                    images: card.images,
-                    pack_images: pack.images,
-                    amount: 1
-                });
-            }
-            else {
-                const reference = cards.find(x => x.temp_id === tempId);
-                reference.amount++;
-                reference.ids.push(card.id);
+                result.find(x => x.set_id === setIds[pack.set_id]).packIds.push(pack.id);
             }
         }
 
-        for(let i = 0; i < cards.length; i++) {
-            delete cards[i].temp_id;
-        }
+        setMongoIds = null;
+        packIds = null;
+        setIds = null;
+        
+        for(let i = 0; i < result.length; i++) {
+            const cards = allCards.filter(x => result[i].packIds.includes(x.pack_id));
+            
+            for(let j = 0; j < cards.length; j++) {
+                const card = cards[j];
 
-        res.json({ count: cards.length, data: cards.sort((a, b) => a.number - b.number || a.set_id === b.set_id) });
+                if(result[i].cards.filter(x => parseInt(x.number) === parseInt(card.number)).length === 0) {
+                    result[i].cards.push({
+                        ids: [card.id],
+                        name: card.name,
+                        number: parseInt(card.number),
+                        rarity: card.rarity,
+                        types: card.types,
+                        weaknesses: card.weaknesses,
+                        resistances: card.resistances,
+                        images: card.images,
+                        amount: 1
+                    });
+                }
+                else {
+                    const reference = result[i].cards.find(x => parseInt(x.number) === parseInt(card.number));
+
+                    reference.amount++;
+                    reference.ids.push(card.id);
+                }
+            }
+
+            result[i].cards.sort((a, b) => a.number - b.number);
+            
+            delete result[i].packIds;
+        }
+        
+        res.json({ data: result.sort((a, b) => a.set_id - b.set_id) });
     }
     catch (err) {
         console.error('Error on /card/me [GET]');

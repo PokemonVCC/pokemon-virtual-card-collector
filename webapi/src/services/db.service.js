@@ -19,6 +19,17 @@ async function connect() {
     try {
         await client.connect();
         _db = client.db(dbConfig.database);
+
+        const collections = await (await _db.listCollections().toArray()).map(x => x.name);
+
+        if(!collections.includes('logs')) {
+            await _db.createCollection('logs', {
+                capped: true,
+                size: 30 * Math.pow(1024, 2) * 1000,
+                max: 1000
+            });
+        }
+
         console.log('MongoDB connected!');
     }
     catch (err) {

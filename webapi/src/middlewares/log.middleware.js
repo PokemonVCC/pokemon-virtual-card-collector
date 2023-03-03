@@ -1,41 +1,45 @@
-const service = require('../services/metrics.service');
+const service = require('../services/log.service');
 const constants = require('../constants/metrics.constant');
 
 function middleware (req, res, next) {
     const requestStartDate = new Date();
     const requestStartTime = process.hrtime();
 
-    let requestData, responseData, endingType, elapsedMs;
+    let requestData, responseData, endingType, elapsedMs, internalError;
 
     req.on('finish', () => {
         elapsedMs = getMsElapsedUntilNow(requestStartTime);
         endingType = constants.endingTypes.FINISHED;
+        internalError = req.internalError;
 
         requestData = processRequest(req);
 
         if(requestData && responseData) {
-            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
+            saveLog(endingType, requestStartDate, elapsedMs, requestData, responseData, internalError);
         }
     });
 
     req.on('close', () => {
         elapsedMs = getMsElapsedUntilNow(requestStartTime);
         endingType = constants.endingTypes.CLOSED;
+        internalError = req.internalError;
 
         requestData = processRequest(req);
 
         if(requestData && responseData) {
-            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
+            saveLog(endingType, requestStartDate, elapsedMs, requestData, responseData, internalError);
         }
     });
 
     const resEnd = res.end;
 
     res.end = (...arguments) => {
+        internalError = req.internalError;
+
         responseData = processResponse(res);
 
         if(requestData && responseData) {
-            saveMetric(endingType, requestStartDate, elapsedMs, requestData, responseData);
+            saveLog(endingType, requestStartDate, elapsedMs, requestData, responseData, internalError);
         }
         
         resEnd.apply(res, arguments);
@@ -64,6 +68,7 @@ function processRequest(request) {
     }
 
     return {
+        protocol: request.protocol,
         remote_ip: remoteIp,
         path: request.originalUrl,
         method: request.method,
@@ -87,7 +92,7 @@ function processResponse(response) {
     };
 }
 
-function saveMetric(endingType, startDate, elapsedMs, requestData, responseData) {
+function saveLog(endingType, startDate, elapsedMs, requestData, responseData, internalError) {
     let statusType = constants.statusTypes.ERROR;
 
     if(responseData.status_code === 200) {
@@ -103,13 +108,14 @@ function saveMetric(endingType, startDate, elapsedMs, requestData, responseData)
         statusType = constants.statusTypes.NOT_FOUND;
     }
 
-    service.createMetric({
+    service.createLog({
         status: statusType,
         start_time: startDate,
         ending_reason: endingType,
         time_elapsed: elapsedMs,
         request: requestData,
-        response: responseData
+        response: responseData,
+        internal_error: statusType == constants.statusTypes.ERROR ? internalError : null
     });
 }
 
