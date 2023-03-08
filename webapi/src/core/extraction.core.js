@@ -122,7 +122,10 @@ function calcMaxWeight(array, property) {
 }
 
 function calcCardPoints(card, printedCards) {
-    if(parseInt(card.number) > printedCards) {
+    if(card.rarity === 'Rare Holo') {
+        return 0;
+    }
+    else if(parseInt(card.number) > printedCards) {
         return 5;
     }
     if(card.rarity === 'Rare Holo V') {

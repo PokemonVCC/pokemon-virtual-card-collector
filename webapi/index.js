@@ -18,7 +18,7 @@ db.connect()
         const syncOp = require('./src/core/sync.core');
 
         const extractionJob = schedule
-            .scheduleJob({hour: 13, minute: 21, second: 45}, async () => {
+            .scheduleJob({hour: 14, minute: 8, second: 0}, async () => {
                 await extractionOp();
                 await syncOp();
             });

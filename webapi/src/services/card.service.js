@@ -18,9 +18,14 @@ async function getSetById(setId) {
     return await db.collection('sets').findOne({ id: setId });
 }
 
+async function countCardsByUserIdAndPackIds(userId, packIds) {
+    return (await db.collection('cards').distinct('number', { user_id: userId, pack_id: { $in: packIds } })).length;
+}
+
 module.exports = {
     getCard,
     getPacksByUserIdAndSetTcgId,
     getCardsByUserIdAndSetId,
-    getSetById
+    getSetById,
+    countCardsByUserIdAndPackIds
 };
