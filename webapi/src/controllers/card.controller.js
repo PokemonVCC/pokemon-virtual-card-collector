@@ -1,5 +1,4 @@
 const service = require('../services/card.service');
-const cardUtils = require('../utils/card.utils');
 
 async function getById(req, res, next) {
     try{
@@ -19,84 +18,81 @@ async function getById(req, res, next) {
     }
 }
 
-async function getByUser(req, res, next) {
+async function getByUserIdAndSetTcgId(req, res, next) {
     try {
-        const allCards = await service.getCards({
-            user_id: req.authenticatedUser.id
-        });
+        const packs = await service.getPacksByUserIdAndSetTcgId(req.params.user_id, req.params.set_tcg_id);
 
-        if(allCards.length === 0) {
+        if(packs.length === 0) {
             res.status(404);
             res.json({ message: 'No cards found' });
             return;
         }
 
-        const result = [];
-
-        let setMongoIds = [];
-        let packIds = [...new Set(allCards.map(x => x.pack_id))];
-        let setIds = {};
+        const setIds = [];
         
-        for(let i = 0; i < packIds.length; i++) {
-            const pack = await service.getCardPack(packIds[i]);
+        const result = {
+            set: {
+                images: packs[0].images,
+                ids: []
+            },
+            packs_ids: [],
+            cards: []
+        };
 
-            if(setMongoIds.filter(x => x.equals(pack.set_id)).length === 0) {
-                const set = await service.getCardSet(pack.set_id);
+        for(let i = 0; i < packs.length; i++) {
+            const pack = packs[i];
 
-                if(result.filter(x => x.set_id === set.id).length === 0) {
-                    result.push({
-                        set_id: set.id,
-                        set_images: pack.images,
-                        packIds: [pack.id],
-                        cards: []
-                    });
+            result.packs_ids.push(pack.id);
+
+            if(!setIds.includes(pack.set_id)) {
+                setIds.push(pack.set_id);
+                
+                const set = await service.getSetById(pack.set_id);
+                
+                if(!result.set.total_cards) {
+                    result.set.total_cards = set.total_cards;
                 }
 
-                setMongoIds.push(pack.set_id);
-                setIds[pack.set_id] = set.id;
-            }
-            else {
-                result.find(x => x.set_id === setIds[pack.set_id]).packIds.push(pack.id);
+                result.set.ids.push(set.id);
             }
         }
 
-        setMongoIds = null;
-        packIds = null;
-        setIds = null;
-        
-        for(let i = 0; i < result.length; i++) {
-            const cards = allCards.filter(x => result[i].packIds.includes(x.pack_id));
-            
+        for(let i = 0; i < setIds.length; i++) {
+            const cards = await service.getCardsByUserIdAndSetId(req.params.user_id, setIds[i]);
+
             for(let j = 0; j < cards.length; j++) {
                 const card = cards[j];
 
-                if(result[i].cards.filter(x => parseInt(x.number) === parseInt(card.number)).length === 0) {
-                    result[i].cards.push({
+                if(result.cards.filter(x => x.number === card.number).length === 0) {
+                    result.cards.push({
+                        amount: 1,
                         ids: [card.id],
+                        images: card.images,
                         name: card.name,
                         number: parseInt(card.number),
+                        points: card.points,
                         rarity: card.rarity,
+                        resistances: card.resistances,
                         types: card.types,
                         weaknesses: card.weaknesses,
-                        resistances: card.resistances,
-                        images: card.images,
-                        amount: 1
                     });
                 }
                 else {
-                    const reference = result[i].cards.find(x => parseInt(x.number) === parseInt(card.number));
+                    const reference = result.cards.find(x => x.number === card.number);
 
-                    reference.amount++;
-                    reference.ids.push(card.id);
+                    if(reference) {
+                        reference.ids.push(card.id);
+                        reference.amount++;
+                    }
                 }
             }
-
-            result[i].cards.sort((a, b) => a.number - b.number);
-            
-            delete result[i].packIds;
         }
-        
-        res.json({ data: result.sort((a, b) => a.set_id - b.set_id) });
+
+        result.packs_count = result.packs_ids.length;
+        result.cards = result.cards.sort((a, b) => a.number - b.number);
+        result.cards_count = result.cards.length;
+
+        res.json({ data: result });
     }
     catch (err) {
         console.error('Error on /card/me [GET]');
@@ -106,5 +102,5 @@ async function getByUser(req, res, next) {
 
 module.exports = {
     getById,
-    getByUser
+    getByUserIdAndSetTcgId
 };

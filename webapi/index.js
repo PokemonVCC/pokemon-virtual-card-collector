@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const schedule = require('node-schedule');
 const app = express();
 const db = require('./src/services/db.service');
 const config = require('./src/configs/general.config');
@@ -11,12 +12,23 @@ app.use(
     })
 );
 
-app.get('/', (req, res) => {
-    res.json({ 'message': 'ok' });
-});
-
 db.connect()
     .then(_ => {
+        const extractionOp = require('./src/core/extraction.core');
+        const syncOp = require('./src/core/sync.core');
+
+        const extractionJob = schedule
+            .scheduleJob({hour: 13, minute: 21, second: 45}, async () => {
+                await extractionOp();
+                await syncOp();
+            });
+
+        process.on('SIGINT', () => { 
+            extractionJob.cancel();
+            schedule.gracefulShutdown()
+                .then(() => process.exit(0));
+        });
+
         const logMiddleware = require('./src/middlewares/log.middleware');
         const errorMiddleware = require('./src/middlewares/error.middleware');
 

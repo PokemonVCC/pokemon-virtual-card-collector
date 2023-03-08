@@ -6,21 +6,21 @@ async function getCard(id) {
     return await db.collection('cards').findOne({ id: id });
 }
 
-async function getCards(filter) {
-    return await db.collection('cards').find(filter).toArray();
+async function getPacksByUserIdAndSetTcgId(userId, setTcgId) {
+    return await db.collection('packs').find({ user_id: userId, set_tcg_id: setTcgId }).toArray();
 }
 
-async function getCardPack(packId) {
-    return await db.collection('packs').findOne({ id: packId });
+async function getCardsByUserIdAndSetId(userId, setId) {
+    return await db.collection('cards').find({ user_id: userId, set_id: setId }).toArray();
 }
 
-async function getCardSet(setId) {
-    return await db.collection('sets').findOne({ _id: setId });
+async function getSetById(setId) {
+    return await db.collection('sets').findOne({ id: setId });
 }
 
 module.exports = {
     getCard,
-    getCards,
-    getCardPack,
-    getCardSet
+    getPacksByUserIdAndSetTcgId,
+    getCardsByUserIdAndSetId,
+    getSetById
 };

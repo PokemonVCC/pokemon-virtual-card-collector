@@ -1,6 +1,9 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
 const tcgSdk = require('pokemontcgsdk');
 const argon2 = require('argon2');
-const hashUtils = require('../utils/hash.utils');
 const tcgConfig = require('../configs/tcg.config');
 const constants = require('../constants/withdraw.constant');
 const mongo = require('./db.service');
@@ -9,200 +12,203 @@ const db = mongo.get();
 
 tcgSdk.configure({ apiKey: tcgConfig.key });
 
-async function withdrawPack(userId) {
-    // Checks if a set already exists on database
-    let set = await db.collection('sets').findOne({
-        packs_available: {
-            $gt: 0
-        }
-    });
-
-    // No set found on database, needs to create a new one
-    if(!set) {
-        set = await generateNewSet();
-    }
-
-    const packs = await db.collection('packs')
-        .find({ set_id: set._id, withdrawed: false })
-        .toArray();
-    const pack = packs[Math.floor(Math.random() * packs.length)];
-
-    const cards = await db.collection('cards').find({ pack_id: pack.id }).toArray();
-
-    for(let i = 0; i < cards.length; i++) {
-        await db.collection('cards').updateOne({ _id: cards[i]._id }, { $set: { user_id: userId }});
-    }
-
-    await db.collection('packs').updateOne({ _id: pack._id }, { $set: { user_id: userId, withdrawed: true }});
-    await db.collection('sets').updateOne({ _id: set._id }, { $set: { packs_available: set.packs_available - 1 }});
-
-    pack.cards = cards;
-
-    return pack;
+function loadSetsData() {
+    const setsDataPath = path.resolve(__dirname, '../../data', './main_sets.json');
+    return JSON.parse(fs.readFileSync(setsDataPath, 'utf8'));
 }
 
-async function generateNewSet() {
-    // Extracts one random set by probability
-    const setExtracted = getRandomSet();
+function getLowerBound(sums, target, low, high) {
+    if (low === high) {
+        return low;
+    }
 
-    const set = {
-        id: setExtracted.id,
-        total_cards: setExtracted.cards,
-        packs_available: 36
+    const midPoint = Math.floor((low + high) / 2);
+
+    if (target < sums[midPoint]) {
+        return getLowerBound(sums, target, low, midPoint);
+    }
+    else if (target > sums[midPoint]) {
+        return getLowerBound(sums, target, midPoint + 1, high);
+    }
+    else {
+        return midPoint + 1;
+    }
+}
+
+function extractByLowerBound(array, idKey, probKey) {
+    const sums = [0];
+    const keys = [];
+
+    array = array.sort((a, b) => b[probKey] - a[probKey]);
+
+    for (let i = 0; i < array.length; i++) {
+        keys.push(array[i][idKey]);
+        sums.push(sums[sums.length - 1] + array[i][probKey]);
+    }
+
+
+    const target = Math.random() * sums[sums.length - 1];
+    const bound = getLowerBound(sums, target, 0, sums.length - 1);
+
+    if (!keys[bound]) {
+        return keys[bound - 1];
+    }
+    else {
+        return keys[bound];
+    }
+}
+
+function pickRandomSet(setsData) {
+    const setId = extractByLowerBound(setsData, 'id', 'prob');
+    return setsData.find(x => x.id === setId);
+}
+
+function filterCardsByRarity(set, rarity, includeSecretRare) {
+    if (rarity === 'Common' || rarity === 'Uncommon') {
+        return set.cards.filter(x => x.rarity === rarity);
+    }
+    else if (rarity === 'Rare') {
+        if (includeSecretRare) {
+            return set.cards.filter(x => x.rarity !== 'Common' && x.rarity !== 'Uncommon');
+        }
+        else {
+            return set.cards.filter(x => x.rarity !== 'Common' && x.rarity !== 'Uncommon' && parseInt(x.number) <= set.printed_cards);
+        }
+    }
+}
+
+function pickRandomCardsByRarity(set, rarity, number, includeSecretRare) {
+    const filteredCards = filterCardsByRarity(set, rarity, includeSecretRare);
+    const cards = [];
+
+    for (let i = 0; i < number; i++) {
+        let cardNumber;
+
+        do {
+            cardNumber = extractByLowerBound(filteredCards, 'number', 'prob');
+        } while (cards.filter(x => parseInt(x.number) === parseInt(cardNumber)).length > 0);
+
+        cards.push(filteredCards.find(x => parseInt(x.number) === parseInt(cardNumber)));
+    }
+
+    return cards;
+}
+
+async function loadNewSet() {
+    const set = pickRandomSet(loadSetsData());
+
+    const hasSecretRare = Math.random() <= (1 / 72);
+
+    const newSet = {
+        id: crypto.randomBytes(64).toString('hex'),
+        creation_time: new Date(),
+        tcg_id: set.id,
+        series: set.series,
+        printed_cards: set.printed_cards,
+        total_cards: set.total_cards,
+        images: set.images,
+        type: set.type,
+        packs_available: 36,
+        has_secret_rare: hasSecretRare,
+        release_date: set.release_date
     };
 
-    // Inserts the extracted set in the database
-    const setResult = await db.collection('sets').insertOne(set);
+    const setResult = await db.collection('sets').insertOne(newSet);
 
-    if(setResult.acknowledged) {
-        set._id = setResult.insertedId;
+    if (!setResult.acknowledged) {
+        throw new Error('Error during new set generation');
+    }
 
-        const setApiResult = await tcgSdk.set.find(set.id);
-        const setCards = await tcgSdk.card.all({ q: 'set.id:' + set.id });
+    let createdPacks = 36;
 
-        const linkedSet = constants.setsLinked.filter(x => x.origin === set.id);
-        if(linkedSet.length === 1) {
-            const linkedCards = await tcgSdk.card.all({ q: 'set.id:' + linkedSet[0].linked });
-            
-            for(let i = 0; i < linkedCards.length; i++) {
-                setCards.push(linkedCards[i]);
-            }
+    for (let i = 0; i < 36; i++) {
+        const cards = [];
+
+        cards.push(...pickRandomCardsByRarity(set, 'Common', 6));
+        cards.push(...pickRandomCardsByRarity(set, 'Uncommon', 3));
+        cards.push(...pickRandomCardsByRarity(set, 'Rare', 1, hasSecretRare));
+
+        const pack = {
+            id: crypto.randomBytes(64).toString('hex'),
+            set_id: newSet.id,
+            set_tcg_id: newSet.tcg_id,
+            creation_time: new Date(),
+            number: i + 1,
+            total_cards: 10,
+            rarity_found: cards[9].rarity,
+            images: set.images,
+            withdrawn: false
+        };
+
+        const packResult = await db.collection('packs').insertOne(pack);
+
+        if (!packResult.acknowledged) {
+            console.error('Error during new pack generation');
+            createdPacks--;
         }
 
-        const canHaveSecretRare = Math.random() <= (1 / 72);
-        const setRarities = [...new Set(setCards.map(x => x.rarity))];
-        
-        for(let i = 0; i < 36; i++) {
-            let j = 0;
-            let packCardsPool = setCards;
-            
-            const cards = [];
+        for (let j = 0; j < cards.length; j++) {
+            const card = cards[j];
 
-            while(j < 10) {
-                let card;
-
-                if(j < 6) {
-                    const commonCards = packCardsPool.filter(x => x.rarity === 'Common');
-                    card = commonCards[Math.floor(Math.random() * commonCards.length)];
-                }
-                else if(j < 9) {
-                    const uncommonCards = packCardsPool.filter(x => x.rarity === 'Uncommon');
-                    card = uncommonCards[Math.floor(Math.random() * uncommonCards.length)];
-                }
-                else {
-                    let filteredCards = [];
-                    
-                    while(filteredCards.length === 0) {
-                        const rarity = getRandomRarity(setRarities);
-
-                        if(rarity === 'Rare Secret' && !canHaveSecretRare) {
-                            continue;
-                        }
-
-                        filteredCards = packCardsPool.filter(x => x.rarity === rarity.name);
-                    }
-                    
-                    card = filteredCards[Math.floor(Math.random() * filteredCards.length)];
-                }
-
-                cards.push({
-                    id: card.id,
-                    name: card.name,
-                    number: card.number,
-                    rarity: card.rarity,
-                    types: card.types,
-                    weaknesses: card.weaknesses,
-                    resistances: card.resistances,
-                    images: {
-                        small: card.images.small,
-                        large: card.images.large
-                    }
-                });
-
-                packCardsPool = packCardsPool.filter(x => x.id !== card.id);
-
-                j++;
-            }
-
-            const packId = set.id + '-' + Date.now() + '' + Math.floor(Math.random() * 10);
-            const packHash = await argon2.hash(packId, {
-                type: argon2.argon2id,
-                timeCost: 2,
-                hashLength: 16,
-                raw: true
+            await db.collection('cards').insertOne({
+                id: crypto.randomBytes(64).toString('hex'),
+                pack_id: pack.id,
+                set_id: newSet.id,
+                creation_time: new Date(),
+                images: card.images,
+                name: card.name,
+                number: parseInt(card.number),
+                rarity: card.rarity,
+                types: card.types,
+                value: card.value,
+                weaknesses: card.weaknesses,
+                points: card.points
             });
+        }
+    }
 
-            const pack = {
-                id: hashUtils.hashToHex(packHash) + (Math.floor(Math.random() * 16).toString(16)),
-                set_id: setResult.insertedId,
-                total_cards: 10,
-                rarity_found: cards[9].rarity,
-                images: {
-                    symbol: setApiResult.images.symbol,
-                    logo: setApiResult.images.logo
-                },
-                withdrawed: false
-            };
-    
-            const packResult = await db.collection('packs').insertOne(pack);
-    
-            if(packResult.acknowledged) {
-                for(let i = 0; i < cards.length; i++) {
-                    const cardId = pack.id + (i + 1).toString(16);
-                    
-                    cards[i].id = cardId;
-                    cards[i].pack_id = pack.id;
-    
-                    await db.collection('cards').insertOne(cards[i]);
-                }
+    await db.collection('sets').updateOne({ _id: setResult.insertedId }, { $set: { packs_available: createdPacks } });
+
+    return newSet;
+}
+
+async function withdrawPack(userId) {
+    try {
+        let set = await db.collection('sets').findOne({
+            packs_available: {
+                $gt: 0
             }
+        });
+
+        if (!set) {
+            set = await loadNewSet();
         }
+
+        const packs = await db.collection('packs')
+            .find({ set_id: set.id, withdrawn: false })
+            .toArray();
+        const pack = packs[Math.floor(Math.random() * packs.length)];
+
+        const cards = await db.collection('cards').find({ set_id: set.id, pack_id: pack.id }).toArray();
+
+        for (let i = 0; i < cards.length; i++) {
+            await db.collection('cards').updateOne({ _id: cards[i]._id }, { $set: { user_id: userId } });
+
+            delete cards[i]._id;
+        }
+
+        await db.collection('packs').updateOne({ _id: pack._id }, { $set: { user_id: userId, withdrawn: true } });
+        await db.collection('sets').updateOne({ _id: set._id }, { $set: { packs_available: set.packs_available - 1 } });
+
+        delete pack._id;
+        delete pack.withdrawn;
+
+        pack.cards = cards;
+
+        return pack;
     }
-
-    return set;
-}
-
-function getRandomSet() {
-    let sum = 0;
-
-    constants.sets.forEach(set => {
-        sum += set.probability;
-    });
-
-    let pick = Math.random() * sum;
-    
-    const orderedSets = constants.sets
-        .sort((a, b) => b.probability - a.probability);
-
-    for(let i = 0; i < orderedSets.length; i++) {
-        pick -= orderedSets[i].probability;
-
-        if(pick <= 0) {
-            return orderedSets[i];
-        }
-    }
-}
-
-function getRandomRarity(availableRarities) {
-    let sum = 0;
-
-    const rarities = constants.rarities.filter(x => availableRarities.includes(x.name));
-
-    rarities.forEach(rarity => {
-        sum += rarity.probability;
-    });
-
-    let pick = Math.random() * sum;
-    
-    const orderedRarities = rarities
-        .sort((a, b) => b.probability - a.probability);
-
-    for(let i = 0; i < orderedRarities.length; i++) {
-        pick -= orderedRarities[i].probability;
-
-        if(pick <= 0) {
-            return orderedRarities[i];
-        }
+    catch (e) {
+        throw e;
     }
 }
 

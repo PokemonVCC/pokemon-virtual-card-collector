@@ -1,5 +1,5 @@
 const argon2 = require('argon2');
-const hashUtils = require('../utils/hash.utils');
+const crypto = require('crypto');
 const constants = require('../constants/user.constant');
 const withdrawConstants = require('../constants/withdraw.constant');
 const mongo = require('./db.service');
@@ -15,18 +15,10 @@ async function createUser(username, password) {
         return -1;
     }
 
-    const userId = username;
-    const userHash = await argon2.hash(userId, {
-        type: argon2.argon2id,
-        timeCost: 2,
-        hashLength: 16,
-        raw: true
-    });
-
     const passwordHash = await argon2.hash(password);
 
     const user = {
-        id: hashUtils.hashToHex(userHash),
+        id: crypto.randomBytes(64).toString('hex'),
         username: username,
         password: passwordHash,
         role: constants.roles.default,
