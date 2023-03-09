@@ -227,6 +227,7 @@ async function getByUserIdAndSetTcgId(req, res, next) {
                 
                 if(!result.set.total_cards) {
                     result.set.total_cards = set.total_cards;
+                    result.set.secret_cards = set.total_cards - set.printed_cards;
                 }
 
                 result.set.ids.push(set.id);
@@ -249,6 +250,7 @@ async function getByUserIdAndSetTcgId(req, res, next) {
                         value: card.value,
                         points: card.points,
                         rarity: card.rarity,
+                        is_reverse: card.is_reverse,
                         resistances: card.resistances,
                         types: card.types,
                         weaknesses: card.weaknesses,
@@ -260,6 +262,10 @@ async function getByUserIdAndSetTcgId(req, res, next) {
                     if(reference) {
                         reference.ids.push(card.id);
                         reference.amount++;
+
+                        if(card.is_reverse) {
+                            reference.is_reverse = true;
+                        }
                     }
                 }
             }

@@ -1,9 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-
 const tcgSdk = require('pokemontcgsdk');
-const argon2 = require('argon2');
 const tcgConfig = require('../configs/tcg.config');
 const constants = require('../constants/withdraw.constant');
 const mongo = require('./db.service');
@@ -64,7 +62,10 @@ function pickRandomSet(setsData) {
 }
 
 function filterCardsByRarity(set, rarity, includeSecretRare) {
-    if (rarity === 'Common' || rarity === 'Uncommon') {
+    if(rarity === 'Reverse Holo') {
+        return set.cards.filter(x => x.rarity === 'Common' || x.rarity === 'Uncommon' || x.rarity === 'Rare' || x.rarity === 'Rare Holo');
+    }
+    else if (rarity === 'Common' || rarity === 'Uncommon') {
         return set.cards.filter(x => x.rarity === rarity);
     }
     else if (rarity === 'Rare') {
@@ -88,7 +89,11 @@ function pickRandomCardsByRarity(set, rarity, number, includeSecretRare) {
             cardNumber = extractByLowerBound(filteredCards, 'number', 'prob');
         } while (cards.filter(x => parseInt(x.number) === parseInt(cardNumber)).length > 0);
 
-        cards.push(filteredCards.find(x => parseInt(x.number) === parseInt(cardNumber)));
+        const card = structuredClone(filteredCards.find(x => parseInt(x.number) === parseInt(cardNumber)));
+
+        card.is_reverse = rarity === 'Reverse Holo';
+
+        cards.push(card);
     }
 
     return cards;
@@ -120,13 +125,16 @@ async function loadNewSet() {
     }
 
     let createdPacks = 36;
+    const cardsDistribution = constants.cardDistributionBySetTcgId(set.id);
 
     for (let i = 0; i < 36; i++) {
         const cards = [];
 
-        cards.push(...pickRandomCardsByRarity(set, 'Common', 6));
-        cards.push(...pickRandomCardsByRarity(set, 'Uncommon', 3));
-        cards.push(...pickRandomCardsByRarity(set, 'Rare', 1, hasSecretRare));
+        for(let j = 0; j < cardsDistribution.length; j++) {
+            const distribution = cardsDistribution[j];
+
+            cards.push(...pickRandomCardsByRarity(set, distribution.rarity, distribution.count, hasSecretRare));
+        }
 
         const pack = {
             id: crypto.randomBytes(64).toString('hex'),
@@ -159,6 +167,7 @@ async function loadNewSet() {
                 name: card.name,
                 number: parseInt(card.number),
                 rarity: card.rarity,
+                is_reverse: card.is_reverse,
                 types: card.types,
                 value: card.value,
                 weaknesses: card.weaknesses,
