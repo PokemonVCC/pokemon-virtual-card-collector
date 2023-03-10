@@ -1,10 +1,12 @@
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const app = express();
 const db = require('./src/services/db.service');
 const config = require('./src/configs/general.config');
 
+app.use(cors());
 app.use(bodyParser.json());
 app.use(
     bodyParser.urlencoded({
@@ -34,6 +36,7 @@ db.connect()
 
         const authRouter = require('./src/routes/auth.route');
         const cardRouter = require('./src/routes/card.route');
+        const setRouter = require('./src/routes/set.route');
         const userRouter = require('./src/routes/user.route');
         const withdrawRouter = require('./src/routes/withdraw.route');
 
@@ -41,6 +44,7 @@ db.connect()
 
         app.use('/auth', authRouter);
         app.use('/card', cardRouter);
+        app.use('/set', setRouter);
         app.use('/user', userRouter);
         app.use('/withdraw', withdrawRouter);
 

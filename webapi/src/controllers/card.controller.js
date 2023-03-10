@@ -85,7 +85,7 @@ async function pointsByUserIdAndSetTcgId(req, res, next) {
         res.json({ data: result });
     }
     catch (err) {
-        console.error('Error on /card/me [GET]');
+        console.error('Error on /card/points/:user_id/:set_tcg_id [GET]');
         next(err);
     }
 }
@@ -149,7 +149,7 @@ async function valueByUserIdAndSetTcgId(req, res, next) {
         res.json({ data: result });
     }
     catch (err) {
-        console.error('Error on /card/me [GET]');
+        console.error('Error on /card/value/:user_id/:set_tcg_id [GET]');
         next(err);
     }
 }
@@ -182,7 +182,7 @@ async function countByUserIdAndSetTcgId(req, res, next) {
         res.json({ data: result });
     }
     catch (err) {
-        console.error('Error on /card/me [GET]');
+        console.error('Error on /card/count/:user_id/:set_tcg_id [GET]');
         next(err);
     }
 }
@@ -278,7 +278,7 @@ async function getByUserIdAndSetTcgId(req, res, next) {
         res.json({ data: result });
     }
     catch (err) {
-        console.error('Error on /card/me [GET]');
+        console.error('Error on /card/list/:user_id/:set_tcg_id [GET]');
         next(err);
     }
 }

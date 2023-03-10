@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "argon2": "^0.30.3",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-queue": "^0.0.13",
     "jsonwebtoken": "^9.0.0",

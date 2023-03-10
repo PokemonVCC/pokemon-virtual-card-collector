@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/card.controller');
-const authMiddleware = require('../middlewares/auth.middleware');
 
 router.get('/list/:user_id/:set_tcg_id', controller.getByUserIdAndSetTcgId);
 router.get('/count/:user_id/:set_tcg_id', controller.countByUserIdAndSetTcgId);
