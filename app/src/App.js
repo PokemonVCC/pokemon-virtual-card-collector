@@ -1,17 +1,12 @@
-import React, { Component } from 'react';
 import './App.css';
 
-import 'rsuite/dist/rsuite.min.css';
-import { Button } from 'rsuite';
+import CardList from './components/card/CardList';
 
-class App extends Component {
-  render() {
-    return (
-      <div className='App'>
-        <Button appearance='primary'>Hello world</Button>
-      </div>
-    );
-  }
+export default function App() {
+	return (
+		<div className='App'>
+			<CardList cardWidth={'180px'}
+				groupedBySet={false} />
+		</div>
+	);
 }
-
-export default App;

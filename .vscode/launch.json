@@ -7,14 +7,29 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Avvia programma",
+            "name": "WebAPI",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/webapi/index.js",
             "env": {
-                "PORT": 3000
+                "PORT": "5000"
             }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "WebApp",
+            "cwd": "${workspaceFolder}/app",
+            "console": "integratedTerminal",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "start"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
     ]
 }
