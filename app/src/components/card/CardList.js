@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
+
 import styled from 'styled-components';
 
 import Card from './Card';
@@ -14,55 +17,96 @@ const Container = styled.div`
 
 const Title = styled.div`
     display: flex;
-    justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    padding: 12px;
+    border-radius: 5px;
+    user-select: none;
+
+    &:hover,
+    &:active {
+        background-color: #e8e8e8;
+    }
 
     & img {
         height: 96px;
         width: auto;
     }
+`;
+
+const Info = styled.div`
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-right: 24px;
 
     & span {
-        font-size: 24px;
+        padding: 12px;
+        background-color: #e8e8e8;
+        border-radius: 5px;
+        font-size: 20px;
         font-weight: 500;
+        
+        &:not(:first-child) {
+            margin-left: 12px;
+        }
+    }
+`;
+
+const Collapse = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 48px;
+    width: 48px;
+    border-radius: 24px;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, .1);
+        cursor: pointer;
     }
 `;
 
 const List = styled.div`
+    --container-width: calc(${props => props.cardWidth} + 24px);
     display: grid;
-    grid-template-columns: repeat(auto-fill, ${props => props.cardWidth});
-    grid-column-gap: 12px;
-    grid-row-gap: 12px;
+    grid-template-columns: repeat(auto-fill, var(--container-width));
     width: 100%;
 `;
 
 export default function CardList({ cardWidth = '180px', groupedBySet = false }) {
     const [reloadRequested, setReloadRequested] = useState(true);
     const [data, setData] = useState(undefined);
+    const [collapsed, setCollapsed] = useState({});
 
     useEffect(() => {
         async function getCards(userId, setId) {
-            const url = `https://dazorn96-zany-train-9pvvp79qp9fpvxv-5000.preview.app.github.dev/card/list/${userId}/${setId}`;
+            const url = `http://localhost:5000/card/list/${userId}/${setId}`;
             const response = await fetch(url);
 
             if(response.ok) {
                 const json = await response.json();
 
+                json.data.points = await getPoints(userId, setId);
+                json.data.value = await getValue(userId, setId);
+
                 if(groupedBySet) {
+                    json.data.set_id = setId;
+
+                    toggleCollapse(setId, true);
+
                     return json.data;
                 }
                 else {
                     setData(json.data);
                     setReloadRequested(false);
-
-                    await getPoints(userId, setId);
                 }
             }
         }
 
         async function getSets(userId) {
-            const url = `https://dazorn96-zany-train-9pvvp79qp9fpvxv-5000.preview.app.github.dev/set/list/${userId}`;
+            const url = `http://localhost:5000/set/list/${userId}`;
             const response = await fetch(url);
 
             if(response.ok) {
@@ -80,13 +124,22 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
         }
 
         async function getPoints(userId, setId) {
-            const url = `https://dazorn96-zany-train-9pvvp79qp9fpvxv-5000.preview.app.github.dev/card/points/${userId}/${setId}`;
+            const url = `http://localhost:5000/card/points/${userId}/${setId}`;
             const response = await fetch(url);
 
             if(response.ok) {
                 const json = await response.json();
+                return json.data;
+            }
+        }
 
-                console.log(data);
+        async function getValue(userId, setId) {
+            const url = `http://localhost:5000/card/value/${userId}/${setId}`;
+            const response = await fetch(url);
+
+            if(response.ok) {
+                const json = await response.json();
+                return json.data;
             }
         }
 
@@ -100,7 +153,7 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
         }
     }, [reloadRequested, groupedBySet]);
 
-    function getListOfCards(cards, count) {
+    function getListOfCards(setId, cards, count) {
         const allCards = cards;
         let lastIndex = 0;
 
@@ -108,7 +161,7 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
             const index = allCards.findIndex(x => x.number === i + 1);
 
             if(index === -1) {
-                allCards.splice(lastIndex, 0, { number: i + 1 });
+                allCards.splice(lastIndex, 0, { number: i + 1, key: setId + (i + 1) });
                 lastIndex++;
             }
             else {
@@ -123,7 +176,7 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
                     <Card cardWidth={cardWidth}
                         number={x.number}
                         isMissing={true}
-                        key={x.number} />
+                        key={x.key} />
                 );
             }
 
@@ -137,29 +190,73 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
         });
     }
 
+    function toggleCollapse(setId, collapsed) {
+        setCollapsed(prev => {
+            prev[setId] = collapsed;
+            
+            return {
+                ...prev
+            };
+        });
+    }
+
     if(groupedBySet && data) {
         return data.map(x => {
-            const list = getListOfCards(x.cards, x.set.total_cards);
+            const list = getListOfCards(x.set.ids[0], x.cards, x.set.total_cards);
+
             return (
-                <Container>
+                <Container key={x.set.ids[0]}>
                     <Title>
                         <img src={x.set.images.logo} />
-                        <span>{x.cards_count}/{x.set.total_cards}</span>
+                        {x.points && x.value ? (
+                            <Info>
+                                <span>{x.cards_count}/{x.set.total_cards} cards</span>
+                                <span>{x.points.total} points</span>
+                                <span>€ {x.value.total}</span>
+                            </Info>
+                        ) : (
+                            <Info>
+                                <span>Loading...</span>
+                            </Info>
+                        )}
+                        <Collapse onClick={() => toggleCollapse(x.set_id, !collapsed[x.set_id])}>
+                            {x.set_id ? (
+                                collapsed[x.set_id] ? (
+                                    <FontAwesomeIcon icon={solid('chevron-down')} />
+                                ): (
+                                    <FontAwesomeIcon icon={solid('chevron-up')} />
+                                )
+                            ) : (
+                                <FontAwesomeIcon icon={solid('chevron-down')} />
+                            )}
+                        </Collapse>
                     </Title>
-                    <List cardWidth={cardWidth}>
-                        {list}
-                    </List>
+                    {!collapsed[x.set_id] ? (
+                        <List cardWidth={cardWidth}>
+                            {list}
+                        </List>
+                    ) : null}
                 </Container>
             )});
     }
     else if(data) {
-        const list = getListOfCards(data.cards, data.set.total_cards);
+        const list = getListOfCards(data.set.ids[0], data.cards, data.set.total_cards);
 
         return (
             <Container>
                 <Title>
                     <img src={data.set.images.logo} />
-                    <span>{data.cards_count}/{data.set.total_cards}</span>
+                    {data.points && data.value ? (
+                        <Info>
+                            <span>{data.cards_count}/{data.set.total_cards} cards</span>
+                            <span>{data.points.total} points</span>
+                            <span>€ {data.value.total}</span>
+                        </Info>
+                    ) : (
+                        <Info>
+                            <span>Loading...</span>
+                        </Info>
+                    )}
                 </Title>
                 <List cardWidth={cardWidth}>
                     {list}

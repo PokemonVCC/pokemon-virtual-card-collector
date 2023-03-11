@@ -3,6 +3,8 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const schedule = require('node-schedule');
 const app = express();
+require('dotenv').config();
+
 const db = require('./src/services/db.service');
 const config = require('./src/configs/general.config');
 

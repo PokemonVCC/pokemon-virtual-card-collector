@@ -1,7 +1,4 @@
 {
-  "dependencies": {
-    "mongodb": "5.1"
-  },
   "devDependencies": {
     "yarn": "^1.22.19"
   }

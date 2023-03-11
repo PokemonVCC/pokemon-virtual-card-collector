@@ -6,7 +6,7 @@ export default function App() {
 	return (
 		<div className='App'>
 			<CardList cardWidth={'180px'}
-				groupedBySet={false} />
+				groupedBySet={true} />
 		</div>
 	);
 }
