@@ -1,157 +1,109 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
 
-import styled from 'styled-components';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
+import { 
+    Container,
+    Title,
+    Info,
+    Collapse,
+    List,
+    NoList,
+    Inspector
+} from './CardList.styled';
 import Card from './Card';
 
-const Container = styled.div`
-    position: relative;
-    width: 100%;
-
-    &:not(:first-child) {
-        margin-top: 24px;
-    }
-`;
-
-const Title = styled.div`
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
-    padding: 12px;
-    border-radius: 5px;
-    user-select: none;
-
-    &:hover,
-    &:active {
-        background-color: #e8e8e8;
-    }
-
-    & img {
-        height: 96px;
-        width: auto;
-    }
-`;
-
-const Info = styled.div`
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-right: 24px;
-
-    & span {
-        padding: 12px;
-        background-color: #e8e8e8;
-        border-radius: 5px;
-        font-size: 20px;
-        font-weight: 500;
-        
-        &:not(:first-child) {
-            margin-left: 12px;
-        }
-    }
-`;
-
-const Collapse = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 48px;
-    width: 48px;
-    border-radius: 24px;
-
-    &:hover {
-        background-color: rgba(0, 0, 0, .1);
-        cursor: pointer;
-    }
-`;
-
-const List = styled.div`
-    --container-width: calc(${props => props.cardWidth} + 24px);
-    display: grid;
-    grid-template-columns: repeat(auto-fill, var(--container-width));
-    width: 100%;
-`;
+import {
+    getSetsByUserId,
+    getCardsByUserIdAndSetTcgId,
+    getSetCountByUserIdAndSetTcgId,
+    getSetPointsByUserIdAndSetTcgId,
+    getSetValueByUserIdAndSetTcgId
+} from '../../services/card.service';
 
 export default function CardList({ cardWidth = '180px', groupedBySet = false }) {
-    const [reloadRequested, setReloadRequested] = useState(true);
+    const [reloadListRequested, setReloadListRequested] = useState(true);
+    const [reloadItemRequested, setReloadItemRequested] = useState(undefined);
     const [data, setData] = useState(undefined);
     const [collapsed, setCollapsed] = useState({});
+    const [cardTakenOut, setCardTakenOut] = useState(undefined);
+    const inspectorRef = useRef(null);
 
     useEffect(() => {
-        async function getCards(userId, setId) {
-            const url = `http://localhost:5000/card/list/${userId}/${setId}`;
-            const response = await fetch(url);
+        async function getMoreSets(userId) {
+            const newData = await getSetsByUserId(userId);
 
-            if(response.ok) {
-                const json = await response.json();
-
-                json.data.points = await getPoints(userId, setId);
-                json.data.value = await getValue(userId, setId);
-
-                if(groupedBySet) {
-                    json.data.set_id = setId;
-
-                    toggleCollapse(setId, true);
-
-                    return json.data;
-                }
-                else {
-                    setData(json.data);
-                    setReloadRequested(false);
-                }
+            for(let i = 0; i < newData.length; i++) {
+                toggleCollapse(newData[i].tcg_id, true);
             }
+
+            setData(newData);
+            setReloadListRequested(false);
         }
 
-        async function getSets(userId) {
-            const url = `http://localhost:5000/set/list/${userId}`;
-            const response = await fetch(url);
+        async function getSingleSetCards(userId, setTcgId) {
+            const newData = await getCardsByUserIdAndSetTcgId(userId, setTcgId);
+            newData.points = await getSetPointsByUserIdAndSetTcgId(userId, setTcgId);
+            newData.value = await getSetValueByUserIdAndSetTcgId(userId, setTcgId);
 
-            if(response.ok) {
-                const json = await response.json();
-
-                const sets = [];
-
-                for(let i = 0; i < json.data.length; i++) {
-                    sets.push(await getCards(userId, json.data[i]));
-                }
-
-                setData(sets);
-                setReloadRequested(false);
-            }
+            setData(newData);
+            setReloadListRequested(false);
         }
 
-        async function getPoints(userId, setId) {
-            const url = `http://localhost:5000/card/points/${userId}/${setId}`;
-            const response = await fetch(url);
-
-            if(response.ok) {
-                const json = await response.json();
-                return json.data;
-            }
-        }
-
-        async function getValue(userId, setId) {
-            const url = `http://localhost:5000/card/value/${userId}/${setId}`;
-            const response = await fetch(url);
-
-            if(response.ok) {
-                const json = await response.json();
-                return json.data;
-            }
-        }
-
-        if(reloadRequested) {
+        if(reloadListRequested) {
             if(groupedBySet) {
-                getSets('12d54634c5fecaa35e998cb749fde732');
+                getMoreSets('12d54634c5fecaa35e998cb749fde732');
             }
             else {
-                getCards('12d54634c5fecaa35e998cb749fde732', 'xy6');
+                getSingleSetCards('12d54634c5fecaa35e998cb749fde732', 'xy6');
             }
         }
-    }, [reloadRequested, groupedBySet]);
+    }, [reloadListRequested, groupedBySet]);
+
+    useEffect(() => {
+        async function getSetCards(userId, setTcgId) {
+            const cardsData = await getCardsByUserIdAndSetTcgId(userId, setTcgId);
+
+            const newData = data.map((x) => {
+                if(x.tcg_id === setTcgId) {
+                    x.cards = cardsData.cards;
+                }
+
+                return x;
+            });
+
+            setData(newData);
+        }
+
+        async function getSetInfo(userId, setTcgId) {
+            const count = await getSetCountByUserIdAndSetTcgId(userId, setTcgId);
+            const points = await getSetPointsByUserIdAndSetTcgId(userId, setTcgId);
+            const value = await getSetValueByUserIdAndSetTcgId(userId, setTcgId);
+
+            const newData = data.map((x) => {
+                if(x.tcg_id === setTcgId) {
+                    x.count = count;
+                    x.points = points;
+                    x.value = value;
+                }
+
+                return x;
+            })
+
+            setData(newData);
+
+            getSetCards(userId, setTcgId);
+
+            setReloadItemRequested(undefined);
+        }
+
+        if(reloadItemRequested) {
+            getSetInfo('12d54634c5fecaa35e998cb749fde732', reloadItemRequested);
+        }
+    }, [reloadItemRequested]);
 
     function getListOfCards(setId, cards, count) {
         const allCards = cards;
@@ -183,14 +135,20 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
             return (
                 <Card cardWidth={cardWidth} 
                     number={x.number}
+                    type={x.types ? x.types[0] : 'Colorless'}
                     lowResImage={x.images.small}
                     hiResImage={x.images.large}
+                    onCardTakenOut={onCardTakenOut}
                     key={x.ids[0]} />
             );
         });
     }
 
     function toggleCollapse(setId, collapsed) {
+        if(!collapsed) {
+            setReloadItemRequested(setId);
+        }
+
         setCollapsed(prev => {
             prev[setId] = collapsed;
             
@@ -200,44 +158,81 @@ export default function CardList({ cardWidth = '180px', groupedBySet = false }) 
         });
     }
 
+    function onCardTakenOut(image) {
+        setCardTakenOut(image);
+        
+        document.body.style.overflow = 'hidden';
+    }
+
+    function onInspectorCardMouseOver(e) {
+        inspectorRef.current.querySelector('.image').style.border = '1px solid red';
+    }
+
     if(groupedBySet && data) {
-        return data.map(x => {
-            const list = getListOfCards(x.set.ids[0], x.cards, x.set.total_cards);
+        const setList = data.map(x => {
+            const list = x.cards && x.count ? getListOfCards(x.tcg_id, x.cards, x.count.total) : null;
 
             return (
-                <Container key={x.set.ids[0]}>
+                <Container key={x.tcg_id}>
                     <Title>
-                        <img src={x.set.images.logo} />
-                        {x.points && x.value ? (
-                            <Info>
-                                <span>{x.cards_count}/{x.set.total_cards} cards</span>
-                                <span>{x.points.total} points</span>
-                                <span>€ {x.value.total}</span>
-                            </Info>
-                        ) : (
-                            <Info>
-                                <span>Loading...</span>
-                            </Info>
-                        )}
-                        <Collapse onClick={() => toggleCollapse(x.set_id, !collapsed[x.set_id])}>
-                            {x.set_id ? (
-                                collapsed[x.set_id] ? (
-                                    <FontAwesomeIcon icon={solid('chevron-down')} />
-                                ): (
-                                    <FontAwesomeIcon icon={solid('chevron-up')} />
-                                )
+                        <img src={x.images.logo} />
+                        {collapsed[x.tcg_id] ? (
+                            x.points && x.value && x.count ? (
+                                <Info>
+                                    <span>{x.count.found}/{x.count.total} cards</span>
+                                    <span>{x.points.total} points</span>
+                                    <span>€ {x.value.total}</span>
+                                </Info>
                             ) : (
+                                <Info>Open to view more info</Info>
+                            )
+                        ): (
+                            x.points && x.value && x.count ? (
+                                <Info>
+                                    <span>{x.count.found}/{x.count.total} cards</span>
+                                    <span>{x.points.total} points</span>
+                                    <span>€ {x.value.total}</span>
+                                </Info>
+                            ) : (
+                                <Info>Loading...</Info>
+                            )
+                        )}
+                        <Collapse onClick={() => toggleCollapse(x.tcg_id, !collapsed[x.tcg_id])}>
+                            {collapsed[x.tcg_id] ? (
                                 <FontAwesomeIcon icon={solid('chevron-down')} />
+                            ): (
+                                <FontAwesomeIcon icon={solid('chevron-up')} />
                             )}
                         </Collapse>
                     </Title>
-                    {!collapsed[x.set_id] ? (
-                        <List cardWidth={cardWidth}>
-                            {list}
-                        </List>
+                    {!collapsed[x.tcg_id] ? (
+                        list ? (
+                            <List cardWidth={cardWidth}>
+                                {list}
+                            </List>
+                        ) : (
+                            <NoList>Loading...</NoList>
+                        )
                     ) : null}
                 </Container>
-            )});
+            )
+        });
+        
+        return (
+            <div>
+                {setList}
+                {cardTakenOut ? (
+                    <Inspector cardWidth={cardWidth}
+                        ref={inspectorRef}>
+                        <LazyLoadImage className='image'
+                            wrapperClassName='wrapper_image'
+                            src={cardTakenOut}
+                            effect='blur'
+                            onMouseOver={onInspectorCardMouseOver} />
+                    </Inspector>
+                ) : null}
+            </div>
+        );
     }
     else if(data) {
         const list = getListOfCards(data.set.ids[0], data.cards, data.set.total_cards);

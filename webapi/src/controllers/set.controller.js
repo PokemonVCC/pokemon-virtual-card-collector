@@ -32,15 +32,24 @@ async function getByUserId(req, res, next) {
             return;
         }
 
-        const setTcgIds = await service.getSetTcgIdsByUserId(req.params.user_id);
+        const sets = await service.getSetsByUserId(req.params.user_id);
 
-        if(setTcgIds.length === 0) {
+        if(sets.length === 0) {
             res.status(404);
             res.json({ message: 'No sets found' });
             return;
         }
 
-        res.json({ data: setTcgIds });
+        for(let i = 0; i < sets.length; i++) {
+            delete sets[i]._id;
+            delete sets[i].id;
+            delete sets[i].creation_time;
+            delete sets[i].has_secret_rare;
+            delete sets[i].packs_available;
+            delete sets[i].total_cards;
+        }
+
+        res.json({ data: sets });
     }
     catch (err) {
         console.error('Error on /set/list/:user_id [GET]');
